@@ -81,7 +81,7 @@ The UI is designed to be intuitive with a clear separation between user and assi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/compliance-assistant.git
+   git clone https://github.com/xhadix/compliance-assistant.git
    cd compliance-assistant
    ```
 
