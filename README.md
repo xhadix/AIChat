@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Supplier Risk Compliance Assistant
 
-## Getting Started
+A Next.js web application with a chat interface that helps users perform supplier risk assessment tasks. Built using the Vercel AI SDK with custom tool calling functionality.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Chat interface powered by Vercel AI SDK
+- Custom tool for querying a mock supplier risk database
+- Support for various supplier risk queries:
+  - Highest risk suppliers
+  - Suppliers by industry
+  - Suppliers by risk category
+  - Suppliers by location
+  - Suppliers above a minimum risk score
+  - General supplier search
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Technology Stack
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js
+- **AI Integration**: Vercel AI SDK
+- **Styling**: TailwindCSS
+- **Deployment**: Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture and Design Decisions
 
-## Learn More
+### Tool Implementation
 
-To learn more about Next.js, take a look at the following resources:
+I implemented the Supplier Risk Search Tool which allows users to query a mockup database of fictional suppliers. The tool supports various query types to filter and search for suppliers based on different criteria such as risk score, industry, location, and risk categories.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The implementation follows a clean architecture with:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Mock Database** - A collection of 10 fictional suppliers with relevant attributes
+2. **Query Functions** - Methods to filter and search this database
+3. **Tool Implementation** - A custom function that processes queries and returns results through the AI chat interface
 
-## Deploy on Vercel
+### Chat Interface
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The chat interface is built using the Vercel AI SDK, which provides:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Real-time streaming of AI responses
+- Tool calling capabilities
+- Loading states for better UX
+
+The UI is designed to be intuitive with a clear separation between user and assistant messages, and visual indicators for when tools are being executed.
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js 18 or higher
+- An API key for an LLM service (OpenAI, Claude, etc.)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/compliance-assistant.git
+   cd compliance-assistant
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env.local` file in the root directory with your API key:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+   
+   Note: You can use other LLM providers by modifying the API route.
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+### Deployment
+
+The application can be deployed to Vercel with the following steps:
+
+1. Push your code to a GitHub repository
+2. Create a new project on Vercel and link it to your repository
+3. Add your LLM API key to the environment variables
+4. Deploy the application
+
+## Usage
+
+You can ask the assistant questions about suppliers such as:
+
+- "What are the top 3 suppliers with the highest risk scores?"
+- "Show me all suppliers in the healthcare industry"
+- "Which suppliers have financial compliance risks?"
+- "Are there any high-risk suppliers in Europe?"
+- "Show me suppliers with a risk score above 7"
+
+The assistant will process your query, call the appropriate tool function, and present the results in a clear, formatted manner.
