@@ -1,47 +1,34 @@
 // app/api/chat/route.ts
 
-import { StreamingTextResponse, Message, experimental_StreamData } from 'ai';
-import { experimental_createAIActionHandler } from 'ai/rsc';
+import { createAI, createStreamableValue, createStreamableUI, getMutableAIState } from 'ai';
 import OpenAI from 'openai';
-import { querySuppliers } from '@/lib/actions/supplierRisk';
+import { querySuppliers } from '../../../lib/actions/supplierRisk';
 
 // Initialize the OpenAI client
-// You can also use Claude, Gemini or other providers
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 // Define the actions available to the model
-const runAIAction = experimental_createAIActionHandler({
-  actions: {
-    async searchSuppliers(query: {
-      type: 'highest_risk' | 'by_industry' | 'by_risk_category' | 'by_location' | 'by_min_score' | 'search';
-      value?: string;
-      count?: number;
-      minScore?: number;
-    }) {
-      try {
-        return await querySuppliers(query);
-      } catch (error) {
-        console.error('Error in searchSuppliers action:', error);
-        return { error: 'Failed to search suppliers' };
-      }
-    },
+const actions = {
+  async searchSuppliers(query: {
+    type: 'highest_risk' | 'by_industry' | 'by_risk_category' | 'by_location' | 'by_min_score' | 'search';
+    value?: string;
+    count?: number;
+    minScore?: number;
+  }) {
+    try {
+      return await querySuppliers(query);
+    } catch (error) {
+      console.error('Error in searchSuppliers action:', error);
+      return { error: 'Failed to search suppliers' };
+    }
   },
-});
+};
 
 export async function POST(req: Request) {
   // Parse the request body
   const { messages } = await req.json();
-
-  // Create a data stream instance to send custom data
-  const data = new experimental_StreamData();
-
-  // Prepare the messages for the model
-  const formattedMessages = messages.map((message: Message) => ({
-    role: message.role === 'user' ? 'user' : 'assistant',
-    content: message.content,
-  }));
   
   // Add a system message to instruct the AI
   const systemMessage = {
@@ -61,62 +48,103 @@ export async function POST(req: Request) {
     Format the results in a clear, easy-to-read format with appropriate headers and structure.`
   };
 
-  // Call the model with actions available
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',  // You can also use gpt-3.5-turbo or other models
-    messages: [systemMessage, ...formattedMessages],
-    temperature: 0.7,
-    stream: true,
-    tools: [
-      {
-        type: 'function',
-        function: {
-          name: 'searchSuppliers',
-          description: 'Search the supplier database for risk information',
-          parameters: {
-            type: 'object',
-            properties: {
-              type: {
-                type: 'string',
-                enum: ['highest_risk', 'by_industry', 'by_risk_category', 'by_location', 'by_min_score', 'search'],
-                description: 'The type of search to perform',
+  // Prepare the messages for the model
+  const formattedMessages = messages.map((message: any) => ({
+    role: message.role === 'user' ? 'user' : 'assistant',
+    content: message.content,
+  }));
+
+  try {
+    // Call the model with actions available
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [systemMessage, ...formattedMessages],
+      temperature: 0.7,
+      stream: true,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'searchSuppliers',
+            description: 'Search the supplier database for risk information',
+            parameters: {
+              type: 'object',
+              properties: {
+                type: {
+                  type: 'string',
+                  enum: ['highest_risk', 'by_industry', 'by_risk_category', 'by_location', 'by_min_score', 'search'],
+                  description: 'The type of search to perform',
+                },
+                value: {
+                  type: 'string',
+                  description: 'The value to search for (industry, risk category, location, or search term)',
+                },
+                count: {
+                  type: 'number',
+                  description: 'Number of results to return for highest_risk queries',
+                },
+                minScore: {
+                  type: 'number',
+                  description: 'Minimum risk score threshold for by_min_score queries',
+                },
               },
-              value: {
-                type: 'string',
-                description: 'The value to search for (industry, risk category, location, or search term)',
-              },
-              count: {
-                type: 'number',
-                description: 'Number of results to return for highest_risk queries',
-              },
-              minScore: {
-                type: 'number',
-                description: 'Minimum risk score threshold for by_min_score queries',
-              },
+              required: ['type'],
             },
-            required: ['type'],
           },
-        },
-      }
-    ],
-  });
+        }
+      ],
+    });
 
-  // Process the response stream
-  const stream = OpenAI.streamUtils.formatFunctionCallsAsMarkdown(response, {
-    async experimental_onFunctionCall(call) {
-      if (call.name === 'searchSuppliers') {
-        // Execute the supplier search function
-        const result = await runAIAction(call.name, call.arguments);
-        
-        // Add the result to the data stream
-        data.append({ type: 'searchResult', value: result });
-        
-        // Return the result to the model
-        return JSON.stringify(result);
+    // Create a stream for the response
+    const chunks = [];
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Process the OpenAI stream
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            chunks.push(content);
+            controller.enqueue(new TextEncoder().encode(content));
+          }
+          
+          // Handle function calls
+          if (chunk.choices[0]?.delta?.tool_calls) {
+            const toolCalls = chunk.choices[0].delta.tool_calls;
+            for (const toolCall of toolCalls) {
+              if (toolCall.function && toolCall.function.name === 'searchSuppliers' && toolCall.function.arguments) {
+                try {
+                  // Parse arguments and call the function
+                  const args = JSON.parse(toolCall.function.arguments);
+                  const result = await actions.searchSuppliers(args);
+                  
+                  // Send result to the stream
+                  const resultStr = JSON.stringify(result);
+                  controller.enqueue(new TextEncoder().encode(`\n\nSearch result: ${resultStr}\n\n`));
+                } catch (error) {
+                  console.error('Error processing tool call:', error);
+                  controller.enqueue(new TextEncoder().encode('\n\nError: Failed to process search request\n\n'));
+                }
+              }
+            }
+          }
+        }
+        controller.close();
       }
-    },
-  });
+    });
 
-  // Return the response as a streaming response
-  return new StreamingTextResponse(stream, { headers: {} }, data);
+    // Return the stream
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
+  } catch (error) {
+    console.error('Error calling OpenAI:', error);
+    return new Response(JSON.stringify({ error: 'Failed to process request' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 }
