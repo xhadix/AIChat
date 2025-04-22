@@ -1,6 +1,5 @@
 // app/api/chat/route.ts
 
-import { createAI, createStreamableValue, createStreamableUI, getMutableAIState } from 'ai';
 import OpenAI from 'openai';
 import { querySuppliers } from '../../../lib/actions/supplierRisk';
 
@@ -94,6 +93,7 @@ export async function POST(req: Request) {
         }
       ],
     });
+    console.log("🚀 ~ POST ~ response:", response)
 
     // Create a stream for the response
     const chunks = [];

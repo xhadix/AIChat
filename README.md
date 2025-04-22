@@ -23,6 +23,33 @@ A Next.js web application with a chat interface that helps users perform supplie
 
 ## Architecture and Design Decisions
 
+### Project Structure
+
+```
+compliance-assistant/
+├── app/
+│   ├── api/
+│   │   └── chat/
+│   │       └── route.ts       # API route for chat functionality
+│   ├── layout.tsx
+│   └── page.tsx               # Main page with chat interface
+├── components/
+│   ├── ChatInput.tsx          # Chat input component
+│   ├── ChatMessage.tsx        # Individual message component
+│   └── ChatWindow.tsx         # Main chat container
+├── lib/
+│   ├── actions/
+│   │   └── supplierRisk.ts    # Tool implementation for supplier risk
+│   ├── suppliers.ts           # Mock supplier database
+│   └── utils.ts               # Utility functions
+├── public/
+│   └── ...
+├── tailwind.config.js
+├── next.config.js
+└── package.json
+```
+
+
 ### Tool Implementation
 
 I implemented the Supplier Risk Search Tool which allows users to query a mockup database of fictional suppliers. The tool supports various query types to filter and search for suppliers based on different criteria such as risk score, industry, location, and risk categories.
@@ -63,7 +90,7 @@ The UI is designed to be intuitive with a clear separation between user and assi
    npm install
    ```
 
-3. Create a `.env.local` file in the root directory with your API key:
+3. Create a `.env` file in the root directory with your API key:
    ```
    OPENAI_API_KEY=your_api_key_here
    ```
@@ -77,16 +104,6 @@ The UI is designed to be intuitive with a clear separation between user and assi
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-### Deployment
-
-The application can be deployed to Vercel with the following steps:
-
-1. Push your code to a GitHub repository
-2. Create a new project on Vercel and link it to your repository
-3. Add your LLM API key to the environment variables
-4. Deploy the application
-
-## Usage
 
 You can ask the assistant questions about suppliers such as:
 
