@@ -81,8 +81,8 @@ The UI is designed to be intuitive with a clear separation between user and assi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/xhadix/compliance-assistant.git
-   cd compliance-assistant
+   git clone https://github.com/xhadix/AIChat.git
+   cd AIChat
    ```
 
 2. Install dependencies:
